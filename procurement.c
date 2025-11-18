@@ -1,7 +1,7 @@
 //---------------------------------------------------------------------
 // Assignment : PA-03 UDP Single-Threaded Server
 // Date       :
-// Author     : WRITE YOUR  NAME(S)  HERE  ... or risk losing points
+// Author     : Joe DiRocco - Elia Kim
 // File Name  : procurement.c
 //---------------------------------------------------------------------
 
@@ -34,7 +34,7 @@ int main( int argc , char *argv[] )
             iters[ MAXFACTORIES+1 ] = {0} ,  // num Iterations completed by each Factory
             partsMade[ MAXFACTORIES+1 ] = {0} , totalItems = 0;
 
-    char  *myName = "MUST WRITE YOUR NAMES HERE" ; 
+    char  *myName = "DiRocco-Kim" ; 
     printf("\nPROCUREMENT: Started. Developed by %s\n\n" , myName );    
 
     char myUserName[30] ;
@@ -56,23 +56,30 @@ int main( int argc , char *argv[] )
  
 
     /* Set up local and remote sockets */
-
-
-    // missing code goes here
-
+    int sd;
+    if ((sd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        err_sys("Could NOT create socket");
+    }
 
     // Prepare the server's socket address structure
-
-
-    // missing code goes here
-
+    struct sockaddr_in srvSkt;
+    memset((void *) &srvSkt, 0, sizeof(srvSkt));
+    srvSkt.sin_family = AF_INET;
+    srvSkt.sin_port = htons(port);
+    if (inet_pton(AF_INET, serverIP, (void *) &srvSkt.sin_addr.s_addr) != 1) {
+        err_sys("Invalid server IP address");
+    }
+    socklen_t srvLen = sizeof(srvSkt);
 
 
     // Send the initial request to the Factory Server
     msgBuf  msg1;
+    msg1.purpose = htonl(REQUEST_MSG);
+    msg1.orderSize = htonl(orderSize);
 
-
-    // missing code goes here
+    if (sendto(sd, &msg1, sizeof(msg1), 0, (SA *)&srvSkt, srvLen) < 0) {
+        err_sys("sendto request failed");
+    }
 
 
     printf("\nPROCUREMENT Sent this message to the FACTORY server: "  );
@@ -83,35 +90,48 @@ int main( int argc , char *argv[] )
     msgBuf  msg2;
     printf ("\nPROCUREMENT is now waiting for order confirmation ...\n" );
 
-
-    // missing code goes here
+    if(recvfrom(sd, &msg2, sizeof(msg2), 0, (SA *)&srvSkt, &srvLen) < 0) {
+        err_sys("recvfrom failed");
+    }
 
 
 
     printf("PROCUREMENT received this from the FACTORY server: "  );
     printMsg( & msg2 );  puts("\n");
 
-
-
-    // missing code goes here
+    if (ntohl(msg2.purpose) != ORDR_CONFIRM) {
+        err_quit("expected ORDR_CONFIRM\n");
+    }
+    
+    numFactories = ntohl(msg2.numFac);
+    activeFactories = numFactories;
 
 
     // Monitor all Active Factory Lines & Collect Production Reports
     while ( activeFactories > 0 ) // wait for messages from sub-factories
     {
+        msgBuf msg;
+        if (recvfrom(sd, &msg, sizeof(msg), 0, (SA *)&srvSkt, srvLen) < 0) {
+            err_sys("recvfrom failed\n");
+        }
 
 
-        // missing code goes here
-
-
-
-       // Inspect the incoming message
-
-
-       // missing code goes here
-
-
-       
+        // Inspect the incoming message
+        int purpose = ntohl(msg.purpose);
+        if (purpose == PRODUCTION_MSG) {
+            int id = ntohl(msg.facID);
+            printf("PROCUREMENT: ");
+            printMsg(&msg);
+            puts("");
+            iters[id]++;
+            partsMade[id] += ntohl(msg.partsMade);
+        } else if (purpose == COMPLETION_MSG) {
+            int id = ntohl(msg.facID);
+            printf("PROCUREMENT: Factory #%d       COMPLETED its task\n", msg.facID);
+            activeFactories--;
+        } else {
+            printf("PROCUREMENT: Received invalid msg { PROTOCOL_ERROR }\n");
+        }
     } 
 
     // Print the summary report
@@ -119,21 +139,25 @@ int main( int argc , char *argv[] )
     printf("\n\n****** PROCUREMENT Summary Report ******\n");
 
 
-    // missing code goes here
+    for (int i = 1; i <= numFactories; i++) {
+        printf("Factory #%d: iterations=%d, partsMade=%d\n",
+            i, iters[i], partsMade[i]);
+        totalItems += partsMade[i];
+    }
 
 
     printf("==============================\n") ;
 
 
-    // missing code goes here
+    printf("Grand total parts made =  %d   vs   order size of   %d\n",
+        totalItems, orderSize);
 
 
-    printf( "\n>>> Supervisor Terminated\n");
+    printf( "\n>>> PROCUREMENT Terminated\n");
 
 
 
-    // missing code goes here
-
+    close(sd);
 
     return 0 ;
 }
