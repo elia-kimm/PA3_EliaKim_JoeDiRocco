@@ -1,7 +1,7 @@
 //---------------------------------------------------------------------
 // Assignment : PA-03 UDP Single-Threaded Server
-// Date       :
-// Author     : WRITE YOUR  NAME(S)  HERE  ... or risk losing points
+// Date       : Nov 12th 2025
+// Author     : Joe DiRocco - Elia Kim
 // File Name  : factory.c
 //---------------------------------------------------------------------
 
@@ -62,14 +62,14 @@ void goodbye(int sig)
     printf( "\n### I (%d) have been nicely asked to TERMINATE. "
            "goodbye\n\n" , getpid() );  
 
-    // missing code goes here
-
+    close(sd);
+    exit(EXIT_SUCCESS);
 }
 
 /*-------------------------------------------------------*/
 int main( int argc , char *argv[] )
 {
-    char  *myName = "Replace with your Names" ; 
+    char  *myName = "Joe DiRocco - Elia Kim" ; 
     unsigned short port = 50015 ;      /* service port number  */
     int    N = 1 ;                     /* Num threads serving the client */
 
@@ -101,8 +101,35 @@ int main( int argc , char *argv[] )
         exit( 1 ) ;
     }
 
-
     // missing code goes here
+
+    //creating UDP socket
+    if ((sd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        err_sys("Could NOT create socket");
+    }
+
+    // signal handlers
+    sigactionWrapper(SIGINT, goodbye);
+    sigactionWrapper(SIGTERM, goodbye);
+
+    //prepare the servers socket address structure
+    memset((void *) &srvrSkt, 0, sizeof(srvrSkt));
+    srvrSkt.sin_family = AF_INET;
+    srvrSkt.sin_addr.s_addr = htonl(INADDR_ANY);
+    srvrSkt.sin_port = htons(port);
+
+    // now bind the server to above socket
+    if ( bind( sd, (SA *) & srvrSkt , sizeof(srvrSkt) ) < 0 )
+    {
+        err_sys("bind failed");
+    }
+
+    //turn the ip into a human readable string
+    char ipStr[IPSTRLEN];
+    inet_ntop( AF_INET, (void *) & srvrSkt.sin_addr.s_addr , ipStr , IPSTRLEN ) ;
+    //print socket number, IP, and port
+    printf("Bound socket %d to IP %s Port %u\n",
+        sd, ipStr, ntohs(srvrSkt.sin_port));
 
 
     int forever = 1;
