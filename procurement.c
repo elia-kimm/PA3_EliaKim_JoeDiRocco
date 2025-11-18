@@ -62,14 +62,14 @@ int main( int argc , char *argv[] )
     }
 
     // Prepare the server's socket address structure
-    struct sockaddr_in srvSkt;
-    memset((void *) &srvSkt, 0, sizeof(srvSkt));
-    srvSkt.sin_family = AF_INET;
-    srvSkt.sin_port = htons(port);
-    if (inet_pton(AF_INET, serverIP, (void *) &srvSkt.sin_addr.s_addr) != 1) {
+    struct sockaddr_in srvrSkt;
+    memset((void *) &srvrSkt, 0, sizeof(srvrSkt));
+    srvrSkt.sin_family = AF_INET;
+    srvrSkt.sin_port = htons(port);
+    if (inet_pton(AF_INET, serverIP, (void *) &srvrSkt.sin_addr.s_addr) != 1) {
         err_sys("Invalid server IP address");
     }
-    socklen_t srvLen = sizeof(srvSkt);
+    socklen_t srvLen = sizeof(srvrSkt);
 
 
     // Send the initial request to the Factory Server
@@ -77,7 +77,7 @@ int main( int argc , char *argv[] )
     msg1.purpose = htonl(REQUEST_MSG);
     msg1.orderSize = htonl(orderSize);
 
-    if (sendto(sd, &msg1, sizeof(msg1), 0, (SA *)&srvSkt, srvLen) < 0) {
+    if (sendto(sd, &msg1, sizeof(msg1), 0, (SA *)&srvrSkt, srvLen) < 0) {
         err_sys("sendto request failed");
     }
 
@@ -90,7 +90,7 @@ int main( int argc , char *argv[] )
     msgBuf  msg2;
     printf ("\nPROCUREMENT is now waiting for order confirmation ...\n" );
 
-    if(recvfrom(sd, &msg2, sizeof(msg2), 0, (SA *)&srvSkt, &srvLen) < 0) {
+    if(recvfrom(sd, &msg2, sizeof(msg2), 0, (SA *)&srvrSkt, &srvLen) < 0) {
         err_sys("recvfrom failed");
     }
 
@@ -111,7 +111,7 @@ int main( int argc , char *argv[] )
     while ( activeFactories > 0 ) // wait for messages from sub-factories
     {
         msgBuf msg;
-        if (recvfrom(sd, &msg, sizeof(msg), 0, (SA *)&srvSkt, srvLen) < 0) {
+        if (recvfrom(sd, &msg, sizeof(msg), 0, (SA *)&srvrSkt, srvLen) < 0) {
             err_sys("recvfrom failed\n");
         }
 
