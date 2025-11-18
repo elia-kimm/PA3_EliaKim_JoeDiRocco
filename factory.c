@@ -1,5 +1,6 @@
 //---------------------------------------------------------------------
 // Assignment : PA-03 UDP Single-Threaded Server
+
 // Date       : Nov 12th 2025
 // Author     : Joe DiRocco - Elia Kim
 // File Name  : factory.c
@@ -29,7 +30,7 @@ typedef struct sockaddr SA ;
 
 int minimum( int a , int b)
 {
-    return ( a <= b ? a : b ) ; 
+    return ( a <= b ? a : b ) ;
 }
 
 void subFactory( int factoryID , int myCapacity , int myDuration ) ;

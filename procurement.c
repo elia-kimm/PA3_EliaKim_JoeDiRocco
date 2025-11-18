@@ -111,6 +111,7 @@ int main( int argc , char *argv[] )
     while ( activeFactories > 0 ) // wait for messages from sub-factories
     {
         msgBuf msg;
+        srvLen = sizeOf(srvrSkt);  // reset length before each recv
         if (recvfrom(sd, &msg, sizeof(msg), 0, (SA *)&srvrSkt, srvLen) < 0) {
             err_sys("recvfrom failed\n");
         }
