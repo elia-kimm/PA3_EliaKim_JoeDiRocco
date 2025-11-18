@@ -52,6 +52,7 @@ int   sd ;      // Server socket descriptor
 struct sockaddr_in  
              srvrSkt,       /* the address of this server   */
              clntSkt;       /* remote client's socket       */
+socklen_t clntLen;
 
 //------------------------------------------------------------
 //  Handle Ctrl-C or KILL 
@@ -131,20 +132,41 @@ int main( int argc , char *argv[] )
     printf("Bound socket %d to IP %s Port %u\n",
         sd, ipStr, ntohs(srvrSkt.sin_port));
 
+    msgBuf msg1;
 
     int forever = 1;
     while ( forever )
     {
         printf( "\nFACTORY server waiting for Order Requests\n" ) ; 
 
-        // missing code goes here
+        clntLen = sizeof(clntSkt);
+
+        // receive REQUEST_MSG
+        if (recvfrom(sd, &msg1, sizeof(msg1), 0, (SA *)&clntSkt, &clntLen) < 0) {
+            err_sys("recvfrom failed");
+        }
 
         printf("\n\nFACTORY server received: " ) ;
         printMsg( & msg1 );  puts("");
 
+        if ( ntohl(msg1.purpose) != REQUEST_MSG) {
+            printf("ERROR: not a request message");
+            continue;
+        }
 
-        // missing code goes here
+        orderSize = ntohl(msg1.orderSize);
+        remainsToMake = orderSize;
+        actuallyMade = 0;
+        numActiveFactories = 1;
 
+
+        // send order_confirm
+        msg1.purpose = htonl(ORDR_CONFIRM);
+        msg1.numFac = htonl(1);
+
+        if (sendto(sd, &msg1, sizeof(msg1), 0, (SA *)&clntSkt, clntLen) < 0) {
+            err_sys("sendto failed");
+        }
 
         printf("\n\nFACTORY sent this Order Confirmation to the client " );
         printMsg(  & msg1 );  puts("");
@@ -171,13 +193,27 @@ void subFactory( int factoryID , int myCapacity , int myDuration )
 
 
         // missing code goes here
+        // choose how many to make
+        int numCurMaking = minimum(myCapacity, remainsToMake);
+        remainsToMake -= numCurMaking;
+        partsImade += numCurMaking;
+        myIterations++;
+
+        //sleep to simulate production
+        Usleep(myDuration * 1000);
 
 
 
         // Send a Production Message to Supervisor
+        msg.purpose = htonl(PRODUCTION_MSG);
+        msg.facID = htonl(factoryID);
+        msg.capacity = htonl(myCapacity);
+        msg.partsMade = htonl(numCurMaking);
+        msg.duration = htonl(myDuration);
 
-
-        // missing code goes here
+        if(sendto(sd, &msg, sizeof(msg), 0, (SA *)&clntSkt, clntLen) < 0 ) {
+            err_sys("sendto PRODUCTION_MSG failed");
+        }
 
 
     }
@@ -185,8 +221,12 @@ void subFactory( int factoryID , int myCapacity , int myDuration )
     // Send a Completion Message to Supervisor
 
 
-    // missing code goes here
+    msg.purpose = htonl(COMPLETION_MSG);
+    msg.facID = htonl(factoryID);
 
+    if (sendto(sd, &msg, sizeof(msg), 0, (SA *)&clntSkt, clntLen) < 0) {
+        err_sys("sendto COMPLETION_MSG failed");
+    }
 
 
     snprintf( strBuff , MAXSTR , ">>> Factory # %-3d: Terminating after making total of %-5d parts in %-4d iterations\n" 
