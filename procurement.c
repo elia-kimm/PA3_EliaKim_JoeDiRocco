@@ -128,7 +128,7 @@ int main( int argc , char *argv[] )
             partsMade[id] += ntohl(msg.partsMade);
         } else if (purpose == COMPLETION_MSG) {
             int id = ntohl(msg.facID);
-            printf("PROCUREMENT: Factory #%d       COMPLETED its task\n", msg.facID);
+            printf("PROCUREMENT: Factory #%d       COMPLETED its task\n", id);
             activeFactories--;
         } else {
             printf("PROCUREMENT: Received invalid msg { PROTOCOL_ERROR }\n");
