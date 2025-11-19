@@ -111,8 +111,8 @@ int main( int argc , char *argv[] )
     while ( activeFactories > 0 ) // wait for messages from sub-factories
     {
         msgBuf msg;
-        srvLen = sizeOf(srvrSkt);  // reset length before each recv
-        if (recvfrom(sd, &msg, sizeof(msg), 0, (SA *)&srvrSkt, srvLen) < 0) {
+        srvLen = sizeof(srvrSkt);  // reset length before each recv
+        if (recvfrom(sd, &msg, sizeof(msg), 0, (SA *)&srvrSkt, &srvLen) < 0) {
             err_sys("recvfrom failed\n");
         }
 
@@ -141,13 +141,13 @@ int main( int argc , char *argv[] )
 
 
     for (int i = 1; i <= numFactories; i++) {
-        printf("Factory #%d: iterations=%d, partsMade=%d\n",
-            i, iters[i], partsMade[i]);
+        printf("Factory #%d  made a total of  %d parts in    %d iterations\n",
+            i, partsMade[i], iters[i]);
         totalItems += partsMade[i];
     }
 
 
-    printf("==============================\n") ;
+    printf("=============================\n") ;
 
 
     printf("Grand total parts made =  %d   vs   order size of   %d\n",
