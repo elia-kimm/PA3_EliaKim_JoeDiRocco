@@ -54,6 +54,7 @@ int main( int argc , char *argv[] )
     char	       *serverIP   = argv[2] ;
     unsigned short  port       = (unsigned short) atoi( argv[3] ) ;
  
+    printf("Attempting Factory server at %s : %u\n", serverIP, port);
 
     /* Set up local and remote sockets */
     int sd;
@@ -121,17 +122,28 @@ int main( int argc , char *argv[] )
         int purpose = ntohl(msg.purpose);
         if (purpose == PRODUCTION_MSG) {
             int id = ntohl(msg.facID);
-            printf("PROCUREMENT: ");
-            printMsg(&msg);
-            puts("");
+            int capacity = ntohl(msg.capacity);
+            int iterPartsMade = ntohl(msg.partsMade);
+            int duration = ntohl(msg.duration);
+            printf("PROCUREMENT: Factory #%d  produced %d  parts in %d  milliSecs\n",
+                id, iterPartsMade, duration);
+            //
             iters[id]++;
-            partsMade[id] += ntohl(msg.partsMade);
+            partsMade[id] += iterPartsMade;
         } else if (purpose == COMPLETION_MSG) {
             int id = ntohl(msg.facID);
             printf("PROCUREMENT: Factory #%d       COMPLETED its task\n", id);
             activeFactories--;
+        } else if (purpose == PROTOCOL_ERR) {
+            printf("PROCUREMENT: Received invalid msg ");
+            printMsg(&msg);
+            puts(""); puts("");
+            close(sd);
+            exit(EXIT_FAILURE);
         } else {
-            printf("PROCUREMENT: Received invalid msg { PROTOCOL_ERROR }\n");
+            printf("PROCUREMENT: Received invalid msg ");
+            printMsg(&msg);
+            puts("");
         }
     } 
 

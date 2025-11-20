@@ -64,6 +64,13 @@ void goodbye(int sig)
     printf( "\n### I (%d) have been nicely asked to TERMINATE. "
            "goodbye\n\n" , getpid() );  
 
+    // need to send a protocall message to the client
+    msgBuf msg;
+    memset(&msg, 0, sizeof(msg));
+    msg.purpose = htonl(PROTOCOL_ERR);
+    if (sendto(sd, &msg, sizeof(msg), 0, (SA *)&clntSkt, clntLen) < 0) {
+        perror("sendto PROTOCOL_ERR failed");
+    }
     close(sd);
     exit(EXIT_SUCCESS);
 }
@@ -149,6 +156,10 @@ int main( int argc , char *argv[] )
 
         printf("\n\nFACTORY server received: " ) ;
         printMsg( & msg1 );  puts("");
+        char ipStr2[IPSTRLEN];
+        printf("        from IP %s port %u", 
+            inet_ntop(AF_INET, &clntSkt.sin_addr, ipStr2, IPSTRLEN),
+            ntohs(clntSkt.sin_port));
 
         if ( ntohl(msg1.purpose) != REQUEST_MSG) {
             printf("ERROR: not a request message");
@@ -196,6 +207,8 @@ void subFactory( int factoryID , int myCapacity , int myDuration )
         // missing code goes here
         // choose how many to make
         int numCurMaking = minimum(myCapacity, remainsToMake);
+        printf("Factory # %d: Going to make   %d parts in  %d mSec\n",
+            factoryID, numCurMaking, myDuration);
         remainsToMake -= numCurMaking;
         partsImade += numCurMaking;
         myIterations++;
